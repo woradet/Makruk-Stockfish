@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,40 +31,42 @@ namespace {
 
   // Polynomial material imbalance parameters
 
-  const int QuadraticOurs[][PIECE_TYPE_NB] = {
+  constexpr int QuadraticOurs[][PIECE_TYPE_NB] = {
     //            OUR PIECES
-    // pair pawn queen bishop knight rook
-    { 1000                                }, // Pair
-    {    0,    0                          }, // Pawn
-    {    0,   24,    0                    }, // Queen
-    {    0,  104,  137,    50             }, // Bishop
-    {    0,  255,  122,     4,   -3       }, // Knight      OUR PIECES
-    {    0,   -2, -134,   105,   47, -149 }  // Rook
+    // Q-pair pawn queen bishop knight rook
+    { 1000                                }, // Q-pair
+    {   40,    0                          }, // Pawn
+    {    0,   69,   -1                    }, // Queen
+    {    0,  104,   33,  -105             }, // Bishop
+    {   32,  255,    2,     4,   -3       }, // Knight      OUR PIECES
+    {  -26,   -2,   52,   110,   47, -150 }  // Rook
   };
 
-  const int QuadraticTheirs[][PIECE_TYPE_NB] = {
+  constexpr int QuadraticTheirs[][PIECE_TYPE_NB] = {
     //           THEIR PIECES
-    // pair pawn queen bishop knight rook
-    {    0                                }, // Pair
-    {    0,    0                          }, // Pawn
-    {    0,  100,     0                   }, // Queen
-    {    0,   65,  -141,     0            }, // Bishop
-    {    0,   63,    37,   -42,    0      }, // Knight      OUR PIECES
-    {    0,   39,  -268,   -24,   24,   0 }  // Rook
+    // Q-pair pawn queen bishop knight rook
+    {    0                                }, // Q-pair
+    {   36,    0                          }, // Pawn
+    {   40,   50,     0                   }, // Queen
+    {   59,   65,    25,     0            }, // Bishop
+    {    9,   63,     7,    42,    0      }, // Knight      OUR PIECES
+    {   46,   39,    -8,   -24,  240,   0 }  // Rook
   };
 
   // Endgame evaluation and scaling functions are accessed directly and not through
   // the function maps because they correspond to more than one material hash key.
-  Endgame<KXK>    EvaluateKXK[]    = { Endgame<KXK>(WHITE),    Endgame<KXK>(BLACK) };
-  Endgame<KQsPsK> EvaluateKQsPsK[] = { Endgame<KQsPsK>(WHITE), Endgame<KQsPsK>(BLACK) };
-
-  Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
-
+  Endgame<KXK>     EvaluateKXK[]     = { Endgame<KXK>(WHITE),     Endgame<KXK>(BLACK) };
+  Endgame<KQsPsK>  EvaluateKQsPsK[]  = { Endgame<KQsPsK>(WHITE),  Endgame<KQsPsK>(BLACK) };
+  Endgame<KXKP>    EvaluateKXKP[]    = { Endgame<KXKP>(WHITE),    Endgame<KXKP>(BLACK) };
+  Endgame<KXKQ>    EvaluateKXKQ[]    = { Endgame<KXKQ>(WHITE),    Endgame<KXKQ>(BLACK) };
+  Endgame<KXKB>    EvaluateKXKB[]    = { Endgame<KXKB>(WHITE),    Endgame<KXKB>(BLACK) };
+  Endgame<KXKN>    EvaluateKXKN[]    = { Endgame<KXKN>(WHITE),    Endgame<KXKN>(BLACK) };
+  Endgame<KXKR>    EvaluateKXKR[]    = { Endgame<KXKR>(WHITE),    Endgame<KXKR>(BLACK) };
+  
   // Helper used to detect a given material distribution
   bool is_KXK(const Position& pos, Color us) {
-    return   pos.count<ALL_PIECES>(~us) <= 2
-          && pos.non_pawn_material(~us) < BishopValueMg
-          && pos.non_pawn_material(us) - pos.non_pawn_material(~us) > KnightValueMg;
+    return  !more_than_one(pos.pieces(~us))
+          && pos.non_pawn_material(us) >= BishopValueEg + QueenValueEg ;
   }
 
   bool is_KQsPsK(const Position& pos, Color us) {
@@ -75,16 +77,50 @@ namespace {
           && !pos.count<KNIGHT>(us);
   }
 
+  bool is_KXKP(const Position& pos, Color us) {
+    return  !pos.count<PAWN>(us)
+          && pos.count<PAWN>(~us) == 1
+		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+  }
+
+  bool is_KXKQ(const Position& pos, Color us) {
+    return  !pos.count<PAWN>(us)
+	      && pos.non_pawn_material(~us) == QueenValueMg
+          && pos.count<QUEEN>(~us)  == 1
+		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+  }
+
+  bool is_KXKB(const Position& pos, Color us) {
+    return  !pos.count<PAWN>(us)
+	      && pos.non_pawn_material(~us) == BishopValueMg
+          && pos.count<BISHOP>(~us)  == 1
+		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+  }
+
+  bool is_KXKN(const Position& pos, Color us) {
+    return  !pos.count<PAWN>(us)
+	      && pos.non_pawn_material(~us) == KnightValueMg
+          && pos.count<KNIGHT>(~us)  == 1
+		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+  }
+
+  bool is_KXKR(const Position& pos, Color us) {
+    return  !pos.count<PAWN>(us)
+	      && pos.non_pawn_material(~us) == RookValueMg
+          && pos.count<ROOK>(~us)  == 1
+		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+  }
+
   /// imbalance() calculates the imbalance by comparing the piece count of each
   /// piece type for both colors.
   template<Color Us>
   int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
 
-    const Color Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Color Them = (Us == WHITE ? BLACK : WHITE);
 
     int bonus = 0;
 
-    // Second-degree polynomial material imbalance by Tord Romstad
+    // Second-degree polynomial material imbalance, by Tord Romstad
     for (int pt1 = NO_PIECE_TYPE; pt1 <= ROOK; ++pt1)
     {
         if (!pieceCount[Us][pt1])
@@ -136,6 +172,13 @@ Entry* probe(const Position& pos) {
   if ((e->evaluationFunction = pos.this_thread()->endgames.probe<Value>(key)) != nullptr)
       return e;
 
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KXK(pos, c))
+      {
+          e->evaluationFunction = &EvaluateKXK[c];
+          return e;
+      }
+
   // Only queens and pawns against bare king
   for (Color c = WHITE; c <= BLACK; ++c)
       if (is_KQsPsK(pos, c))
@@ -144,11 +187,38 @@ Entry* probe(const Position& pos) {
           return e;
       }
 
-  // All other KXK situations
   for (Color c = WHITE; c <= BLACK; ++c)
-      if (is_KXK(pos, c))
+      if (is_KXKP(pos, c))
       {
-          e->evaluationFunction = &EvaluateKXK[c];
+          e->evaluationFunction = &EvaluateKXKP[c];
+          return e;
+      }
+	  
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KXKQ(pos, c))
+      {
+          e->evaluationFunction = &EvaluateKXKQ[c];
+          return e;
+      }
+
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KXKB(pos, c))
+      {
+          e->evaluationFunction = &EvaluateKXKB[c];
+          return e;
+      }
+
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KXKN(pos, c))
+      {
+          e->evaluationFunction = &EvaluateKXKN[c];
+          return e;
+      }
+
+  for (Color c = WHITE; c <= BLACK; ++c)
+      if (is_KXKR(pos, c))
+      {
+          e->evaluationFunction = &EvaluateKXKR[c];
           return e;
       }
 
@@ -162,27 +232,16 @@ Entry* probe(const Position& pos) {
       return e;
   }
 
-  // A small material advantage makes it difficult to win.
-  // This catches some trivial draws like KK, KBK and KNK and gives a
-  // drawish scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-  if (npm_w + pos.count<PAWN>(WHITE) * QueenValueEg - npm_b <= KnightValueMg)
-      e->factor[WHITE] = uint8_t(npm_w + pos.count<PAWN>(WHITE) * QueenValueEg <= KnightValueMg ? SCALE_FACTOR_DRAW :
-                                 npm_b <= BishopValueMg ? 4 : 14);
-
-  if (npm_b + pos.count<PAWN>(BLACK) * QueenValueEg - npm_w <= KnightValueMg)
-      e->factor[BLACK] = uint8_t(npm_b + pos.count<PAWN>(BLACK) * QueenValueEg <= KnightValueMg ? SCALE_FACTOR_DRAW :
-                                 npm_w <= BishopValueMg ? 4 : 14);
-
   // Evaluate the material imbalance. We use PIECE_TYPE_NONE as a place holder
   // for the bishop pair "extended piece", which allows us to be more flexible
   // in defining bishop pair bonuses.
-  const int PieceCount[COLOR_NB][PIECE_TYPE_NB] = {
+  const int pieceCount[COLOR_NB][PIECE_TYPE_NB] = {
   { pos.queen_pair(WHITE), pos.count<PAWN>(WHITE), pos.count<QUEEN >(WHITE),
     pos.count<BISHOP>(WHITE), pos.count<KNIGHT>(WHITE), pos.count<ROOK>(WHITE) },
   { pos.queen_pair(BLACK), pos.count<PAWN>(BLACK), pos.count<QUEEN >(BLACK),
     pos.count<BISHOP>(BLACK), pos.count<KNIGHT>(BLACK), pos.count<ROOK>(BLACK) } };
 
-  e->value = int16_t((imbalance<WHITE>(PieceCount) - imbalance<BLACK>(PieceCount)) / 16);
+  e->value = int16_t((imbalance<WHITE>(pieceCount) - imbalance<BLACK>(pieceCount)) / 16);
   return e;
 }
 

@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -36,28 +36,24 @@
 enum EndgameCode {
 
   EVALUATION_FUNCTIONS,
-  KNNK,  // KNN vs K
-  KXK,   // Generic "mate lone king" eval
+
+  KXK,    // Generic "mate lone king" eval
   KQsPsK, // KQsPs vs K
-  KBNK,  // KBN vs K
-  KBQK,  // KBQ vs K
-  KNQK,  // KNQ vs K
-  KRKP,  // KR vs KP
-  KRKB,  // KR vs KB
-  KRKN,  // KR vs KN
-  KQKP,  // KQ vs KP
-  KRKQ,  // KQ vs KR
+  KXKP,
+  KXKQ,
+  KXKB,
+  KXKN,
+  KXKR,
+  KNNK,
+  KNK,
+  KBK,
+  KQQK,
+  KBQK,
+  KNQK,
 
   SCALING_FUNCTIONS,
-  KRPKR,   // KRP vs KR
-  KRPPKRP, // KRPP vs KRP
-  KBPKB,   // KBP vs KB
-  KBPPKB,  // KBPP vs KB
-  KBPKN,   // KBP vs KN
-  KNPK,    // KNP vs K
-  KNPKB,   // KNP vs KB
-  KPKP     // KP vs KP
-};
+
+  };
 
 
 /// Endgame functions can be of two types depending on whether they return a

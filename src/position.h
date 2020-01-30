@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ struct StateInfo {
   Piece      capturedPiece;
   StateInfo* previous;
   Bitboard   blockersForKing[COLOR_NB];
-  Bitboard   pinnersForKing[COLOR_NB];
+  Bitboard   pinners[COLOR_NB];
   Bitboard   checkSquares[PIECE_TYPE_NB];
 };
 
@@ -96,8 +96,7 @@ public:
 
   // Checking
   Bitboard checkers() const;
-  Bitboard discovered_check_candidates() const;
-  Bitboard pinned_pieces(Color c) const;
+  Bitboard blockers_for_king(Color c) const;
   Bitboard check_squares(PieceType pt) const;
 
   // Attacks to/from a given square
@@ -144,8 +143,9 @@ public:
   bool is_chess960() const;
   Thread* this_thread() const;
   bool is_draw(int ply) const;
+  bool has_game_cycle(int ply) const;
+  bool has_repeated() const;
   int rule50_count() const;
-  int counting_limit() const;
   Score psq_score() const;
   Value non_pawn_material(Color c) const;
   Value non_pawn_material() const;
@@ -266,12 +266,8 @@ inline Bitboard Position::checkers() const {
   return st->checkersBB;
 }
 
-inline Bitboard Position::discovered_check_candidates() const {
-  return st->blockersForKing[~sideToMove] & pieces(sideToMove);
-}
-
-inline Bitboard Position::pinned_pieces(Color c) const {
-  return st->blockersForKing[c] & pieces(c);
+inline Bitboard Position::blockers_for_king(Color c) const {
+  return st->blockersForKing[c];
 }
 
 inline Bitboard Position::check_squares(PieceType pt) const {
@@ -317,23 +313,6 @@ inline int Position::game_ply() const {
 
 inline int Position::rule50_count() const {
   return st->rule50;
-}
-
-inline int Position::counting_limit() const {
-  Color strongSide = count<ALL_PIECES>(WHITE) > 1 ? WHITE : BLACK;
-  assert(count<ALL_PIECES>(strongSide) > 1 && count<ALL_PIECES>(~strongSide) == 1);
-
-  if (count<ROOK>(strongSide) > 1)
-      return 8;
-  if (count<ROOK>(strongSide) == 1)
-      return 16;
-  if (count<BISHOP>(strongSide) > 1)
-      return 22;
-  if (count<KNIGHT>(strongSide) > 1)
-      return 32;
-  if (count<BISHOP>(strongSide) == 1)
-      return 44;
-  return 64;
 }
 
 inline bool Position::queen_pair(Color c) const {
@@ -395,10 +374,10 @@ inline void Position::move_piece(Piece pc, Square from, Square to) {
 
   // index[from] is not updated and becomes stale. This works as long as index[]
   // is accessed just by known occupied squares.
-  Bitboard from_to_bb = SquareBB[from] ^ SquareBB[to];
-  byTypeBB[ALL_PIECES] ^= from_to_bb;
-  byTypeBB[type_of(pc)] ^= from_to_bb;
-  byColorBB[color_of(pc)] ^= from_to_bb;
+  Bitboard fromTo = SquareBB[from] ^ SquareBB[to];
+  byTypeBB[ALL_PIECES] ^= fromTo;
+  byTypeBB[type_of(pc)] ^= fromTo;
+  byColorBB[color_of(pc)] ^= fromTo;
   board[from] = NO_PIECE;
   board[to] = pc;
   index[to] = index[from];

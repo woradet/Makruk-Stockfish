@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2017 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@ using std::string;
 namespace {
 
   // Table used to drive the king towards the edge of the board
-  // in KX vs K and KQ vs KR endgames.
-  const int PushToEdges[SQUARE_NB] = {
+  // in KX vs K endgames.
+  constexpr int PushToEdges[SQUARE_NB] = {
     100, 90, 80, 70, 70, 80, 90, 100,
      90, 70, 60, 50, 50, 60, 70,  90,
      80, 60, 40, 30, 30, 40, 60,  80,
@@ -45,20 +45,58 @@ namespace {
 
   // Table used to drive the king towards the edge of the board
   // in KBQ vs K.
-  const int PushToOpposingSideEdges[SQUARE_NB] = {
-     30, 10,  5,  0,  0,  5, 10,  30,
+  constexpr int PushToOpposingSideEdges[SQUARE_NB] = {
+     30,  5,  3,  0,  0,  3,  5,  30,
      40, 20,  5,  0,  0,  5, 20,  40,
-     50, 30, 10,  0,  0, 10, 30,  50,
-     60, 40, 20, 10, 10, 20, 40,  60,
+     50, 30, 10,  3,  3, 10, 30,  50,
+     60, 40, 20,  7,  7, 20, 40,  60,
      70, 50, 30, 20, 20, 30, 50,  70,
      80, 60, 40, 30, 30, 40, 60,  80,
      90, 70, 60, 50, 50, 60, 70,  90,
     100, 90, 80, 70, 70, 80, 90, 100
   };
 
+  // Table used to drive the king towards a corner
+  // of the same color as the queen in KNQ vs K endgames.
+  constexpr int PushToQueenCorners[SQUARE_NB] = {
+    100, 90, 80, 70, 50, 40,  0,   0,
+     90, 50, 30, 20, 10,  5,  0,   0,
+     80, 30, 20, 10,  5,  0,  5,  40,
+     70, 20, 10,  0,  0,  5, 10,  50,
+     50, 10,  5,  0,  0, 10, 20,  70,
+     40,  5,  0, 5, 10,  20, 30,  80,
+      0,  0,  5, 10, 20, 30, 50,  90,
+      0,  0, 40, 50, 70, 80, 90, 100
+  };
+
+  // Table used to identify corner of king square
+  constexpr int KingCorners[SQUARE_NB] = {
+      1, 1, 1, 0, 0, 2, 2, 2,
+      1, 1, 1, 0, 0, 2, 2, 2,
+      1, 1, 1, 0, 0, 2, 2, 2,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      3, 3, 3, 0, 0, 4, 4, 4,
+      3, 3, 3, 0, 0, 4, 4, 4,
+      3, 3, 3, 0, 0, 4, 4, 4
+  };
+
+  // Table used to drive the king towards a corner square of the
+  // right color in KBN vs K endgames.
+  constexpr int PushToCorners[SQUARE_NB] = {
+    200, 190, 180, 170, 160, 150, 140, 130,
+    190, 180, 170, 160, 150, 140, 130, 140,
+    180, 170, 155, 140, 140, 125, 140, 150,
+    170, 160, 140, 120, 110, 140, 150, 160,
+    160, 150, 140, 110, 120, 140, 160, 170,
+    150, 140, 125, 140, 140, 155, 170, 180,
+    140, 130, 140, 150, 160, 170, 180, 190,
+    130, 140, 150, 160, 170, 180, 190, 200
+  };
+
   // Tables used to drive a piece towards or away from another piece
-  const int PushClose[8] = { 0, 0, 100, 80, 60, 40, 20, 10 };
-  const int PushAway [8] = { 0, 5, 20, 40, 60, 80, 90, 100 };
+  constexpr int PushClose[8] = { 0, 120, 100, 80, 40, 20, 10, 0 };
+  constexpr int PushAway [8] = { 0, 0, 10, 20, 40, 80, 100, 120 };
 
 #ifndef NDEBUG
   bool verify_material(const Position& pos, Color c, Value npm, int pawnsCnt) {
@@ -74,21 +112,11 @@ namespace {
 Endgames::Endgames() {
 
   add<KNNK>("KNNK");
-  add<KBNK>("KSNK");
+  add<KNK>("KNK");
+  add<KBK>("KSK");
+  add<KQQK>("KMMK");
   add<KBQK>("KSMK");
   add<KNQK>("KNMK");
-  add<KRKP>("KRKP");
-  add<KRKB>("KRKS");
-  add<KRKN>("KRKN");
-  add<KRKQ>("KRKM");
-
-  add<KNPK>("KNPK");
-  add<KNPKB>("KNPKS");
-  add<KRPKR>("KRPKR");
-  add<KBPKB>("KSPKS");
-  add<KBPKN>("KSPKN");
-  add<KBPPKB>("KSPPKS");
-  add<KRPPKRP>("KRPPKRP");
 }
 
 
@@ -99,44 +127,6 @@ Endgames::Endgames() {
 template<>
 Value Endgame<KXK>::operator()(const Position& pos) const {
 
-  assert(!pos.checkers()); // Eval is never called when in check
-
-  // Stalemate detection with lone king
-  if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
-      return VALUE_DRAW;
-
-  Square winnerKSq = pos.square<KING>(strongSide);
-  Square loserKSq = pos.square<KING>(weakSide);
-
-  Value result =  pos.non_pawn_material(strongSide)
-                - pos.non_pawn_material(weakSide)
-                + pos.count<PAWN>(strongSide) * PawnValueEg
-                - pos.count<PAWN>(weakSide) * PawnValueEg
-                + PushToEdges[loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
-
-  if (pos.count<ALL_PIECES>(weakSide) == 1)
-  {
-      if (!pos.count<PAWN>() && Options["EnableCounting"])
-          result = result * std::max(2 * pos.counting_limit() - pos.rule50_count(), 0) / 128;
-      else if (   pos.count<  ROOK>(strongSide)
-              || pos.count<BISHOP>(strongSide) >= 2
-              ||(pos.count<BISHOP>(strongSide) && pos.count<KNIGHT>(strongSide))
-              ||(pos.count<BISHOP>(strongSide) && pos.count<QUEEN>(strongSide))
-              ||(pos.count<KNIGHT>(strongSide) && pos.count<QUEEN>(strongSide) >= 2)
-              ||(pos.count< QUEEN>(strongSide) >= 3
-                  && ( DarkSquares & pos.pieces(strongSide, QUEEN))
-                  && (~DarkSquares & pos.pieces(strongSide, QUEEN))))
-          result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
-  }
-
-  return strongSide == pos.side_to_move() ? result : -result;
-}
-
-/// KQsPs vs K.
-template<>
-Value Endgame<KQsPsK>::operator()(const Position& pos) const {
-
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
   assert(!pos.checkers()); // Eval is never called when in check
 
@@ -145,14 +135,62 @@ Value Endgame<KQsPsK>::operator()(const Position& pos) const {
       return VALUE_DRAW;
 
   Square winnerKSq = pos.square<KING>(strongSide);
+  Square knightSq = pos.square<KNIGHT>(strongSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
   Square loserKSq = pos.square<KING>(weakSide);
 
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
                 + PushToEdges[loserKSq]
+				+ PushToCorners[loserKSq]
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
                 + PushClose[distance(winnerKSq, loserKSq)];
 
-  if (   pos.count<QUEEN>(strongSide) >= 3
+  if(pos.count<ROOK>(strongSide))
+	result += PushToEdges[loserKSq];
+  if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+    result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+			+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
+
+  if (   pos.count<ROOK>(strongSide)
+      ||(pos.count<BISHOP>(strongSide) && pos.count<KNIGHT>(strongSide))
+      || pos.count<BISHOP>(strongSide) > 1
+      ||(pos.count<BISHOP>(strongSide) && pos.count<QUEEN>(strongSide))
+      ||(pos.count<KNIGHT>(strongSide) && (pos.count<QUEEN>(strongSide) > 1))
+	  ||((pos.count<KNIGHT>(strongSide) > 1) && pos.count<QUEEN>(strongSide))
+      ||((pos.count< QUEEN>(strongSide) >= 3)
+        && ( DarkSquares & pos.pieces(strongSide, QUEEN))
+        && (~DarkSquares & pos.pieces(strongSide, QUEEN))))
+        result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// KQsPs vs K.
+template<>
+Value Endgame<KQsPsK>::operator()(const Position& pos) const {
+
+  assert(!pos.checkers()); // Eval is never called when in check
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + pos.count<PAWN>(strongSide) * PawnValueEg
+                + PushToEdges[loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
+                + PushClose[distance(winnerKSq, loserKSq)];
+
+  if (   pos.count<QUEEN>(strongSide)>=3
       && ( DarkSquares & pos.pieces(strongSide, QUEEN))
       && (~DarkSquares & pos.pieces(strongSide, QUEEN)))
       result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
@@ -179,27 +217,170 @@ Value Endgame<KQsPsK>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
-
-/// Mate with KBN vs K.
+//Opponent King with Pawn pieces
 template<>
-Value Endgame<KBNK>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, KnightValueMg + BishopValueMg, 0));
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
+Value Endgame<KXKP>::operator()(const Position& pos) const {
 
   Square winnerKSq = pos.square<KING>(strongSide);
+  Square knightSq = pos.square<KNIGHT>(strongSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
   Square loserKSq = pos.square<KING>(weakSide);
 
-  Value result =  VALUE_KNOWN_WIN
-                + PushClose[distance(winnerKSq, loserKSq)]
-                + PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  Value result =  pos.non_pawn_material(strongSide)
+                + PushToEdges[loserKSq]
+				+ PushToCorners[loserKSq]
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
+                + PushClose[distance(winnerKSq, loserKSq)];
+
+  if(pos.count<QUEEN>(strongSide))
+		result += PushAway[distance(loserKSq, pos.square<QUEEN>(weakSide))];
+  if(pos.count<ROOK>(strongSide))
+		result += PushToEdges[loserKSq];
+  if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+		result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+		result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+//Opponent King with Queen pieces
 template<>
-Value Endgame<KNQK>::operator()(const Position&) const { return VALUE_DRAW; }
+Value Endgame<KXKQ>::operator()(const Position& pos) const {
 
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square knightSq = pos.square<KNIGHT>(strongSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + PushToEdges[loserKSq]
+				+ PushToCorners[loserKSq]
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
+                + PushClose[distance(winnerKSq, loserKSq)];
+
+  if(pos.count<QUEEN>(strongSide))
+		result += PushAway[distance(loserKSq, pos.square<QUEEN>(weakSide))];
+  if(pos.count<ROOK>(strongSide))
+		result += PushToEdges[loserKSq];
+  if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+		result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+		result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+//Opponent King with Bishop pieces
+template<>
+Value Endgame<KXKB>::operator()(const Position& pos) const {
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square knightSq = pos.square<KNIGHT>(strongSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + PushToEdges[loserKSq]
+				+ PushToCorners[loserKSq]
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
+                + PushClose[distance(winnerKSq, loserKSq)];
+
+  if(pos.count<ROOK>(strongSide))
+	result += PushToEdges[loserKSq];
+  if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+    result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+			+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+//Opponent King with Knight pieces
+template<>
+Value Endgame<KXKN>::operator()(const Position& pos) const {
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square knightSq = pos.square<KNIGHT>(strongSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + PushToEdges[loserKSq]
+				+ PushToCorners[loserKSq]
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
+                + PushClose[distance(winnerKSq, loserKSq)];
+
+  if(pos.count<ROOK>(strongSide))
+	result += PushToEdges[loserKSq];
+  if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+    result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+			+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+//Opponent King with Rook pieces
+template<>
+Value Endgame<KXKR>::operator()(const Position& pos) const {
+
+  Square winnerKSq = pos.square<KING>(strongSide);
+  Square knightSq = pos.square<KNIGHT>(strongSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
+  Square loserKSq = pos.square<KING>(weakSide);
+
+  Value result =  pos.non_pawn_material(strongSide)
+                + PushToEdges[loserKSq]
+				+ PushToCorners[loserKSq]
+				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
+				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
+                + PushClose[distance(winnerKSq, loserKSq)];
+
+  if(pos.count<ROOK>(strongSide))
+	result += PushToEdges[loserKSq];
+  if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+    result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+			+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
+
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
+/// Mate with KBQ vs K.
 template<>
 Value Endgame<KBQK>::operator()(const Position& pos) const {
 
@@ -208,127 +389,83 @@ Value Endgame<KBQK>::operator()(const Position& pos) const {
 
   Square winnerKSq = pos.square<KING>(strongSide);
   Square loserKSq = pos.square<KING>(weakSide);
+  Square bishopSq = pos.square<BISHOP>(strongSide);
+  Square queenSq = pos.square<QUEEN>(strongSide);
 
-  Value result =  VALUE_KNOWN_WIN
+  Value result;
+  if(    (KingCorners[loserKSq] == 1 && !opposite_colors(queenSq, SQ_A1))
+      || (KingCorners[loserKSq] == 2 && !opposite_colors(queenSq, SQ_H1))
+      || (KingCorners[loserKSq] == 3 && !opposite_colors(queenSq, SQ_A8))
+      || (KingCorners[loserKSq] == 4 && !opposite_colors(queenSq, SQ_H8)) )
+  {
+      if (opposite_colors(queenSq, SQ_A1))
+      {
+        winnerKSq = ~winnerKSq;
+        loserKSq  = ~loserKSq;
+      }
+         result =  VALUE_KNOWN_WIN
+                + PushClose[distance(winnerKSq, loserKSq)]
+                + PushToQueenCorners[loserKSq];
+  } else
+         result =  VALUE_KNOWN_WIN
                 + PushClose[distance(winnerKSq, loserKSq)]
                 + PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<BISHOP>(strongSide))
+    result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
+			+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
-
-/// KR vs KP. This is a somewhat tricky endgame to evaluate precisely without
-/// a bitbase. The function below returns drawish scores when the pawn is
-/// far advanced with support of the king, while the attacking king is far
-/// away.
+/// Mate with KNQ vs K.
 template<>
-Value Endgame<KRKP>::operator()(const Position& pos) const {
+Value Endgame<KNQK>::operator()(const Position& pos) const {
 
-  assert(verify_material(pos, strongSide, RookValueMg, 0));
-  assert(verify_material(pos, weakSide, VALUE_ZERO, 1));
+  assert(verify_material(pos, strongSide, KnightValueMg + QueenValueMg, 0));
+  assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
 
   Square winnerKSq = pos.square<KING>(strongSide);
-  Square loserKSq = pos.square<KING>(weakSide);
+  Square loserKSq  = pos.square<KING>(weakSide);
+  Square queenSq   = pos.square<QUEEN>(strongSide);
+  Square knightSq  = pos.square<KNIGHT>(strongSide);
 
-  Value result =  RookValueEg
-                - PawnValueEg
-                + PushToEdges[loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
-
+  // tries to drive toward corners A1 or H8. If we have a
+  // queen that cannot reach the above squares, we flip the kings in order
+  // to drive the enemy toward corners A8 or H1.
+  if (opposite_colors(queenSq, SQ_A1))
+  {
+      winnerKSq = ~winnerKSq;
+      loserKSq  = ~loserKSq;
+	  knightSq  = ~knightSq;
+  }
+  
+  // Weak king not in queen's corner could be draw
+  if (distance(SQ_A1, loserKSq) >= 4 && distance(SQ_H8, loserKSq) >= 4)
+      return Value(PushClose[distance(winnerKSq, loserKSq)]);
+	  
+  // King and knight on the winnng square ? 
+  Value winValue = (  distance(winnerKSq, distance(SQ_A1, loserKSq) < 4 ? SQ_A1 : SQ_H8) <= 4 
+					&& popcount(pos.attacks_from<KING>(loserKSq) & pos.attacks_from<KNIGHT>(knightSq)) > 0) ? 
+					VALUE_KNOWN_WIN : VALUE_ZERO;
+  
+  Value result =  winValue
+                + PushClose[distance(winnerKSq, loserKSq)]
+                + PushToQueenCorners[loserKSq];
+ if(pos.count<KNIGHT>(strongSide))
+	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
+            + PushToCorners[loserKSq];
+  if(pos.count<QUEEN>(strongSide))
+    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
+			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
   return strongSide == pos.side_to_move() ? result : -result;
 }
-
-
-/// KR vs KB.
-template<>
-Value Endgame<KRKB>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, RookValueMg, 0));
-  assert(verify_material(pos, weakSide, BishopValueMg, 0));
-
-  Square winnerKSq = pos.square<KING>(strongSide);
-  Square loserKSq = pos.square<KING>(weakSide);
-
-  Value result =  RookValueEg
-                - BishopValueEg
-                + PushToEdges[loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
-
-  return strongSide == pos.side_to_move() ? result : -result;
-}
-
-
-/// KR vs KN.
-template<>
-Value Endgame<KRKN>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, RookValueMg, 0));
-  assert(verify_material(pos, weakSide, KnightValueMg, 0));
-
-  Square bksq = pos.square<KING>(weakSide);
-  Square bnsq = pos.square<KNIGHT>(weakSide);
-  Value result = Value(PushToEdges[bksq] + PushAway[distance(bksq, bnsq)]);
-  return strongSide == pos.side_to_move() ? result : -result;
-}
-
-
-/// KR vs KQ.
-template<>
-Value Endgame<KRKQ>::operator()(const Position& pos) const {
-
-  assert(verify_material(pos, strongSide, RookValueMg, 0));
-  assert(verify_material(pos, weakSide, QueenValueMg, 0));
-
-  Square winnerKSq = pos.square<KING>(strongSide);
-  Square loserKSq = pos.square<KING>(weakSide);
-
-  Value result =  RookValueEg
-                - QueenValueEg
-                + PushToEdges[loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
-
-  return strongSide == pos.side_to_move() ? result : -result;
-}
-
 
 /// Some cases of trivial draws
+
 template<> Value Endgame<KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
-
-
-/// KRP vs KR.
-template<>
-ScaleFactor Endgame<KRPKR>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
-
-/// KRPP vs KRP. There is just a single rule: if the stronger side has no passed
-/// pawns and the defending king is actively placed, the position is drawish.
-template<>
-ScaleFactor Endgame<KRPPKRP>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
-
-/// KBP vs KB.
-template<>
-ScaleFactor Endgame<KBPKB>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
-
-
-/// KBPP vs KB.
-template<>
-ScaleFactor Endgame<KBPPKB>::operator()(const Position&) const { return SCALE_FACTOR_NONE; }
-
-
-/// KBP vs KN.
-template<>
-ScaleFactor Endgame<KBPKN>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
-
-
-/// KNP vs K.
-template<>
-ScaleFactor Endgame<KNPK>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
-
-
-/// KNP vs KB.
-template<>
-ScaleFactor Endgame<KNPKB>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
-
-
-/// KP vs KP.
-template<>
-ScaleFactor Endgame<KPKP>::operator()(const Position&) const { return SCALE_FACTOR_DRAW; }
+template<> Value Endgame<KNK>::operator()(const Position&) const { return VALUE_DRAW; }
+template<> Value Endgame<KBK>::operator()(const Position&) const { return VALUE_DRAW; }
+template<> Value Endgame<KQQK>::operator()(const Position&) const { return VALUE_DRAW; }
