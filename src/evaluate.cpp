@@ -115,9 +115,9 @@ namespace {
   // pieces if they occupy or can reach an outpost square, bigger if that
   // square is supported by a pawn.
   constexpr Score Outpost[][2] = {
-	{ S( 9, 2), S(15, 5) }, // Queen 
-    { S(14, 7), S(20,10) }, // Bishop	
-    { S(22, 6), S(36,12) }  // Knight	
+    { S( 9, 2), S(15, 5) }, // Queen
+    { S(14, 7), S(20,10) }, // Bishop
+    { S(22, 6), S(36,12) }  // Knight
   };
 
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is
@@ -380,7 +380,7 @@ namespace {
     // Main king safety evaluation
     if (kingAttackersCount[Them] > 0)
     {
-        int kingDanger = 0;
+        int kingDanger = -mg_value(score);
         unsafeChecks = 0;
 
         // Attacked squares defended at most once by our queen or king
@@ -426,12 +426,11 @@ namespace {
         unsafeChecks &= mobilityArea[Them];
 
         kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                     +  64 * kingAttacksCount[Them]
+                     + 64  * kingAttacksCount[Them]
                      + 182 * popcount(kingRing[Us] & weak)
                      + 128 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
 					 - 100 * !pos.count<ROOK>(Them)
-                     -   8 * mg_value(score) / 8
-                     - 1111;
+                     - 999 ;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
         if (kingDanger > 0)
@@ -620,15 +619,15 @@ namespace {
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
-                int k = !unsafeSquares ? 35 : !(unsafeSquares & blockSq) ? 19 : 0;
+                int k = !unsafeSquares ? 20 : !(unsafeSquares & blockSq) ? 9 : 0;
 
                 // If the path to the queen is fully defended, assign a big bonus.
                 // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
-                    k += 8;
+                    k += 6;
 
                 else if (defendedSquares & blockSq)
-                    k += 5;
+                    k += 4;
 
                 bonus += make_score(k * w, k * w);
             }
