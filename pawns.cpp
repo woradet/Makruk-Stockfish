@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,15 +52,15 @@ namespace {
   // RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn
   // is behind our king.
   constexpr Value UnblockedStorm[int(FILE_NB) / 2][RANK_NB] = {
-    { V( 34), V( 58), V(113), V( 61), V( 37), V( 24), V( 21) },
-    { V( 23), V( 46), V( 93), V( 10), V(  2), V(-20), V(  6) },
-    { V( -6), V( 22), V(106), V( 28), V(  6), V(-33), V( -1) },
-    { V(-17), V( 33), V( 71), V( 14), V( -9), V(-21), V(-16) }
+    { V( 34), V( 58), V(113), V( 61), V(37), V( 24), V( 21) },
+    { V( 23), V( 46), V( 93), V( 10), V( 2), V(-20), V(  6) },
+    { V( -6), V( 22), V(106), V( 28), V( 6), V(-33), V( -1) },
+    { V(-17), V( 33), V( 71), V( 14), V(-9), V(-21), V(-16) }
    };
  
   // Danger of blocked enemy pawns storming our king, by rank
   constexpr Value BlockedStorm[RANK_NB] =
-    { V(  0), V(  0), V( 58), V(-13), V(-22), V(-3), V(-5) };
+    { V(0), V(0), V( 58), V(-13), V(-22), V(-3), V(-5) };
 
   #undef S
   #undef V

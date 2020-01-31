@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -463,6 +463,8 @@ bool Position::pseudo_legal(const Move m) const {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
 
+  const Bitboard TRank6BB = (us == WHITE ? Rank6BB : Rank3BB);
+
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)
       return MoveList<LEGAL>(*this).contains(m);
@@ -485,7 +487,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 6th/3rd rank.
-      if (rank_of(to) >= relative_rank(us, RANK_6))
+      if (type_of(pc) == PAWN && (TRank6BB & to))
           return false;
 
       if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
@@ -867,7 +869,7 @@ bool Position::is_draw(int ply) const {
 
   /* // 64-move rule
   else if (st->rule50 > 127 && (!checkers() || MoveList<LEGAL>(*this).size()))
-      return true; */ // woradet
+      return true; */ // pr0rp
 
   int end = std::min(st->rule50, st->pliesFromNull);
 

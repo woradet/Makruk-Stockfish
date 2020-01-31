@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -115,9 +115,9 @@ namespace {
   // pieces if they occupy or can reach an outpost square, bigger if that
   // square is supported by a pawn.
   constexpr Score Outpost[][2] = {
-	{ S( 9, 2), S(15, 5) }, // Queen 
-    { S(14, 7), S(20,10) }, // Bishop	
-    { S(22, 6), S(36,12) }  // Knight	
+    { S( 9, 2), S(15, 5) }, // Queen
+    { S(14, 7), S(20,10) }, // Bishop
+    { S(22, 6), S(36,12) }  // Knight
   };
 
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is
@@ -380,7 +380,7 @@ namespace {
     // Main king safety evaluation
     if (kingAttackersCount[Them] > 0)
     {
-        int kingDanger = 0;
+        int kingDanger = -mg_value(score);
         unsafeChecks = 0;
 
         // Attacked squares defended at most once by our queen or king
@@ -426,12 +426,11 @@ namespace {
         unsafeChecks &= mobilityArea[Them];
 
         kingDanger +=        kingAttackersCount[Them] * kingAttackersWeight[Them]
-                     +  64 * kingAttacksCount[Them]
+                     + 64  * kingAttacksCount[Them]
                      + 182 * popcount(kingRing[Us] & weak)
                      + 128 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
 					 - 100 * !pos.count<ROOK>(Them)
-                     -   8 * mg_value(score) / 8
-                     - 1111;
+                     - 999 ;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
         if (kingDanger > 0)
@@ -620,15 +619,15 @@ namespace {
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
-                int k = !unsafeSquares ? 35 : !(unsafeSquares & blockSq) ? 19 : 0;
+                int k = !unsafeSquares ? 20 : !(unsafeSquares & blockSq) ? 9 : 0;
 
                 // If the path to the queen is fully defended, assign a big bonus.
                 // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
-                    k += 8;
+                    k += 6;
 
                 else if (defendedSquares & blockSq)
-                    k += 5;
+                    k += 4;
 
                 bonus += make_score(k * w, k * w);
             }
@@ -706,9 +705,9 @@ namespace {
                             && (pos.pieces(PAWN) & KingSide);
 
     // Compute the initiative bonus for the attacking side
-    int complexity =   8 * outflanking
-                    +  8 * pe->pawn_asymmetry()
+    int complexity =   8 * pe->pawn_asymmetry()
                     + 12 * pos.count<PAWN>()
+                    + 12 * outflanking
                     + 16 * pawnsOnBothFlanks
                     + 48 * !pos.non_pawn_material()
                     -136 ;

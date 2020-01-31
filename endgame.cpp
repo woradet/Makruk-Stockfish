@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -43,6 +43,18 @@ namespace {
     100, 90, 80, 70, 70, 80, 90, 100
   };
 
+  // Corn
+  constexpr int PushToCorn[SQUARE_NB] = {
+    200, 150, 100, 70, 70, 100, 150, 200,
+    150,  70,  60, 50, 50,  60,  70, 150,
+    100,  60,  40, 30, 30,  40,  60, 100,
+     70,  50,  30, 20, 20,  30,  50,  70,
+     70,  50,  30, 20, 20,  30,  50,  70,
+    100,  60,  40, 30, 30,  40,  60, 100,
+    150,  70,  60, 50, 50,  60,  70, 150,
+    200, 150, 100, 70, 70, 100, 150, 200
+  };
+
   // Table used to drive the king towards the edge of the board
   // in KBQ vs K.
   constexpr int PushToOpposingSideEdges[SQUARE_NB] = {
@@ -59,14 +71,14 @@ namespace {
   // Table used to drive the king towards a corner
   // of the same color as the queen in KNQ vs K endgames.
   constexpr int PushToQueenCorners[SQUARE_NB] = {
-    100, 90, 80, 70, 50, 40,  0,   0,
-     90, 50, 30, 20, 10,  5,  0,   0,
-     80, 30, 20, 10,  5,  0,  5,  40,
-     70, 20, 10,  0,  0,  5, 10,  50,
-     50, 10,  5,  0,  0, 10, 20,  70,
-     40,  5,  0, 5, 10,  20, 30,  80,
-      0,  0,  5, 10, 20, 30, 50,  90,
-      0,  0, 40, 50, 70, 80, 90, 100
+    100, 90, 80, 70, 50, 30,  0,   0,
+     90, 70, 60, 50, 30, 10,  0,   0,
+     80, 60, 40, 30, 10,  0, 10,  30,
+     70, 50, 30, 10,  0, 10, 30,  50,
+     50, 30, 10,  0, 10, 30, 50,  70,
+     30, 10,  0, 10, 30, 40, 60,  80,
+      0,  0, 10, 30, 50, 60, 70,  90,
+      0,  0, 30, 50, 70, 80, 90, 100
   };
 
   // Table used to identify corner of king square
@@ -95,8 +107,9 @@ namespace {
   };
 
   // Tables used to drive a piece towards or away from another piece
-  constexpr int PushClose[8] = { 0, 120, 100, 80, 40, 20, 10, 0 };
-  constexpr int PushAway [8] = { 0, 0, 10, 20, 40, 80, 100, 120 };
+  constexpr int PushClose[8] = { 0, 0, 100, 80, 60, 40, 20, 10 };
+  constexpr int PushAway [8] = { 0, 5, 20, 40, 60, 80, 90, 100 };
+  constexpr int PushWin[8] = { 0, 120, 100, 80, 60, 40, 20, 10 };
 
 #ifndef NDEBUG
   bool verify_material(const Position& pos, Color c, Value npm, int pawnsCnt) {
@@ -135,7 +148,6 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
       return VALUE_DRAW;
 
   Square winnerKSq = pos.square<KING>(strongSide);
-  Square knightSq = pos.square<KNIGHT>(strongSide);
   Square bishopSq = pos.square<BISHOP>(strongSide);
   Square queenSq = pos.square<QUEEN>(strongSide);
   Square loserKSq = pos.square<KING>(weakSide);
@@ -143,33 +155,44 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
                 + PushToEdges[loserKSq]
-				+ PushToCorners[loserKSq]
-				+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq]
-				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
                 + PushClose[distance(winnerKSq, loserKSq)];
 
-  if(pos.count<ROOK>(strongSide))
-	result += PushToEdges[loserKSq];
-  if(pos.count<KNIGHT>(strongSide))
-	result += (PushClose[distance(knightSq, winnerKSq)]>>1)
-            + PushToCorners[loserKSq];
-  if(pos.count<BISHOP>(strongSide))
-    result += (PushClose[distance(bishopSq, winnerKSq)]>>1)
-			+ PushToOpposingSideEdges[strongSide == WHITE ? loserKSq : ~loserKSq];
-  if(pos.count<QUEEN>(strongSide))
-    result += (PushClose[distance(queenSq, winnerKSq)]>>1)
-			+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq];
+  if(pos.count<BISHOP>(strongSide) >= 1)
+    result += PushToEdges[loserKSq]
+            + PushWin[distance(bishopSq, loserKSq)];
+  if(pos.count<QUEEN>(strongSide) >= 1)
+    result += PushToEdges[loserKSq]
+            + PushWin[distance(queenSq, loserKSq)];
 
-  if (   pos.count<ROOK>(strongSide)
-      ||(pos.count<BISHOP>(strongSide) && pos.count<KNIGHT>(strongSide))
-      || pos.count<BISHOP>(strongSide) > 1
-      ||(pos.count<BISHOP>(strongSide) && pos.count<QUEEN>(strongSide))
-      ||(pos.count<KNIGHT>(strongSide) && (pos.count<QUEEN>(strongSide) > 1))
-	  ||((pos.count<KNIGHT>(strongSide) > 1) && pos.count<QUEEN>(strongSide))
-      ||((pos.count< QUEEN>(strongSide) >= 3)
+  if (   (pos.count<ROOK>(strongSide) >= 1)
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<KNIGHT>(strongSide) >= 1) && (pos.count<BISHOP>(strongSide) >= 1) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<KNIGHT>(strongSide) >= 1) && (pos.count<BISHOP>(strongSide) >= 1))
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<KNIGHT>(strongSide) >= 1) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<BISHOP>(strongSide) >= 1) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<KNIGHT>(strongSide) >= 1))
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<BISHOP>(strongSide) >= 1))
+      || ((pos.count<ROOK>(strongSide) >= 1) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count<BISHOP>(strongSide) >= 1) && (pos.count<KNIGHT>(strongSide) >= 1) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count<BISHOP>(strongSide) >= 1) && (pos.count<KNIGHT>(strongSide) >= 1))
+      || (pos.count<BISHOP>(strongSide) == 2)
+      || ((pos.count<BISHOP>(strongSide) >= 1) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count<KNIGHT>(strongSide) == 1) && (pos.count<QUEEN>(strongSide) >= 2))
+      || ((pos.count<KNIGHT>(strongSide) == 2) && (pos.count<QUEEN>(strongSide) >= 1))
+      || ((pos.count< QUEEN>(strongSide) >= 3)
         && ( DarkSquares & pos.pieces(strongSide, QUEEN))
         && (~DarkSquares & pos.pieces(strongSide, QUEEN))))
         result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+  {
+      bool dark  =  DarkSquares & pos.pieces(strongSide, QUEEN);
+      bool light = ~DarkSquares & pos.pieces(strongSide, QUEEN);
+
+      if ((pos.count< QUEEN>(strongSide) >= 3)
+          && !pos.count<ROOK>(strongSide)
+          && !pos.count<KNIGHT>(strongSide)
+          && !pos.count<BISHOP>(strongSide)
+          &&(!dark || !light))
+          return VALUE_DRAW; // pr0rp
+  }
 
   return strongSide == pos.side_to_move() ? result : -result;
 }

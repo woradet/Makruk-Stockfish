@@ -2,7 +2,7 @@
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
   Copyright (C) 2008-2015 Marco Costalba, Joona Kiiski, Tord Romstad
-  Copyright (C) 2015-2019 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
+  Copyright (C) 2015-2020 Marco Costalba, Joona Kiiski, Gary Linscott, Tord Romstad
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -66,7 +66,8 @@ namespace {
   // Helper used to detect a given material distribution
   bool is_KXK(const Position& pos, Color us) {
     return  !more_than_one(pos.pieces(~us))
-          && pos.non_pawn_material(us) >= BishopValueEg + QueenValueEg ;
+          && (pos.count<PAWN>(us) || !pos.count<PAWN>(us)) //pr0rp
+          && pos.non_pawn_material(us) >= BishopValueMg + QueenValueMg;
   }
 
   bool is_KQsPsK(const Position& pos, Color us) {
