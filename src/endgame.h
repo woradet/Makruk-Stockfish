@@ -60,6 +60,7 @@ enum EndgameCode {
   KQKP,
   KBQK,
   KNQK,
+  KRKN,
 
   SCALING_FUNCTIONS,
 

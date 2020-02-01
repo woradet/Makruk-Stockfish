@@ -115,6 +115,7 @@ Endgames::Endgames() {
   add<KQKP>("KMKP");
   add<KBQK>("KSMK");
   add<KNQK>("KNMK");
+  add<KRKN>("KRKN");
 }
 
 
@@ -181,6 +182,7 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+
 /// KQsPs vs K.
 template<>
 Value Endgame<KQsPsK>::operator()(const Position& pos) const {
@@ -218,6 +220,7 @@ Value Endgame<KQsPsK>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+
 //Opponent King + Pawn pieces
 template<>
 Value Endgame<KXKP>::operator()(const Position& pos) const {
@@ -244,6 +247,7 @@ Value Endgame<KXKP>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
+
 
 //Opponent King + Queen pieces
 template<>
@@ -272,6 +276,7 @@ Value Endgame<KXKQ>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+
 //Opponent King + Bishop pieces
 template<>
 Value Endgame<KXKB>::operator()(const Position& pos) const {
@@ -298,6 +303,8 @@ Value Endgame<KXKB>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
+
+
 //Opponent King + Knight pieces
 template<>
 Value Endgame<KXKN>::operator()(const Position& pos) const {
@@ -325,6 +332,7 @@ Value Endgame<KXKN>::operator()(const Position& pos) const {
   return strongSide == pos.side_to_move() ? result : -result;
 }
 
+
 //Opponent King + Rook pieces
 template<>
 Value Endgame<KXKR>::operator()(const Position& pos) const {
@@ -351,6 +359,7 @@ Value Endgame<KXKR>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
+
 
 /// Mate with KBQ vs K.
 template<>
@@ -380,6 +389,7 @@ Value Endgame<KBQK>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
+
 
 /// Mate with KNQ vs K.
 template<>
@@ -419,6 +429,22 @@ Value Endgame<KNQK>::operator()(const Position& pos) const {
 
   return strongSide == pos.side_to_move() ? result : -result;
 }
+
+
+/// KR vs KN. The attacking side has slightly better winning chances than
+/// in KR vs KB, particularly if the king and the knight are far apart.
+template<>
+Value Endgame<KRKN>::operator()(const Position& pos) const {
+
+  assert(verify_material(pos, strongSide, RookValueMg, 0));
+  assert(verify_material(pos, weakSide, KnightValueMg, 0));
+
+  Square bksq = pos.square<KING>(weakSide);
+  Square bnsq = pos.square<KNIGHT>(weakSide);
+  Value result = Value(PushToEdges[bksq] + PushAway[distance(bksq, bnsq)]);
+  return strongSide == pos.side_to_move() ? result : -result;
+}
+
 
 /// Some cases of trivial draws
 template<> Value Endgame<KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
