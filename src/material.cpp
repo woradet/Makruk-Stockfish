@@ -83,37 +83,73 @@ namespace {
   }
 
   bool is_KXKP(const Position& pos, Color us) {
-    return  !pos.count<PAWN>(us)
+    return   !pos.count<PAWN>(us)
+          && (pos.count<ROOK>(us) || !pos.count<ROOK>(us))
+          && (pos.count<KNIGHT>(us) || !pos.count<KNIGHT>(us))
+          && (pos.count<BISHOP>(us) || !pos.count<BISHOP>(us))
+          && (pos.count<QUEEN>(us) || !pos.count<QUEEN>(us))
           && pos.count<PAWN>(~us) == 1
-		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+          && !pos.count<ROOK>(~us)
+          && !pos.count<KNIGHT>(~us)
+          && !pos.count<BISHOP>(~us)
+          && !pos.count<QUEEN>(~us)
+          && pos.non_pawn_material(us) >= BishopValueEg + QueenValueEg;
   }
 
   bool is_KXKQ(const Position& pos, Color us) {
-    return  !pos.count<PAWN>(us)
-	      && pos.non_pawn_material(~us) == QueenValueMg
-          && pos.count<QUEEN>(~us)  == 1
-		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+    return   !pos.count<PAWN>(us)
+          && (pos.count<ROOK>(us) || !pos.count<ROOK>(us))
+          && (pos.count<KNIGHT>(us) || !pos.count<KNIGHT>(us))
+          && (pos.count<BISHOP>(us) || !pos.count<BISHOP>(us))
+          && (pos.count<QUEEN>(us) || !pos.count<QUEEN>(us))
+          && !pos.count<PAWN>(~us)
+          && !pos.count<ROOK>(~us)
+          && !pos.count<KNIGHT>(~us)
+          && !pos.count<BISHOP>(~us)
+          && pos.count<QUEEN>(~us) == 1
+          && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg;
   }
 
   bool is_KXKB(const Position& pos, Color us) {
-    return  !pos.count<PAWN>(us)
-	      && pos.non_pawn_material(~us) == BishopValueMg
-          && pos.count<BISHOP>(~us)  == 1
-		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+    return   !pos.count<PAWN>(us)
+          && (pos.count<ROOK>(us) || !pos.count<ROOK>(us))
+          && (pos.count<KNIGHT>(us) || !pos.count<KNIGHT>(us))
+          && (pos.count<BISHOP>(us) || !pos.count<BISHOP>(us))
+          && (pos.count<QUEEN>(us) || !pos.count<QUEEN>(us))
+          && !pos.count<PAWN>(~us)
+          && !pos.count<ROOK>(~us)
+          && !pos.count<KNIGHT>(~us)
+          && pos.count<BISHOP>(~us) == 1
+          && !pos.count<QUEEN>(~us)
+          && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg;
   }
 
   bool is_KXKN(const Position& pos, Color us) {
-    return  !pos.count<PAWN>(us)
-	      && pos.non_pawn_material(~us) == KnightValueMg
-          && pos.count<KNIGHT>(~us)  == 1
-		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+    return   !pos.count<PAWN>(us)
+          && (pos.count<ROOK>(us) || !pos.count<ROOK>(us))
+          && (pos.count<KNIGHT>(us) || !pos.count<KNIGHT>(us))
+          && (pos.count<BISHOP>(us) || !pos.count<BISHOP>(us))
+          && (pos.count<QUEEN>(us) || !pos.count<QUEEN>(us))
+          && !pos.count<PAWN>(~us)
+          && !pos.count<ROOK>(~us)
+          && pos.count<KNIGHT>(~us) == 1
+          && !pos.count<BISHOP>(~us)
+          && !pos.count<QUEEN>(~us)
+          && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg;
   }
 
   bool is_KXKR(const Position& pos, Color us) {
-    return  !pos.count<PAWN>(us)
-	      && pos.non_pawn_material(~us) == RookValueMg
-          && pos.count<ROOK>(~us)  == 1
-		  && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg ;
+    return   !pos.count<PAWN>(us)
+          && (pos.count<ROOK>(us) || !pos.count<ROOK>(us))
+          && (pos.count<KNIGHT>(us) || !pos.count<KNIGHT>(us))
+          && (pos.count<BISHOP>(us) || !pos.count<BISHOP>(us))
+          && (pos.count<QUEEN>(us) || !pos.count<QUEEN>(us))
+          && !pos.count<PAWN>(~us)
+          && pos.count<ROOK>(~us) == 1
+          && !pos.count<KNIGHT>(~us)
+          && !pos.count<BISHOP>(~us)
+          && !pos.count<QUEEN>(~us)
+          && pos.non_pawn_material(us) - pos.non_pawn_material(~us) >= BishopValueEg + QueenValueEg;
   }
 
   /// imbalance() calculates the imbalance by comparing the piece count of each
