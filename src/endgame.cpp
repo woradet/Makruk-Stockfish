@@ -100,9 +100,19 @@ namespace {
 Endgames::Endgames() {
 
   add<KNNK>("KNNK");
+  add<KQQK>("KMMK");
+  add<KQPK>("KMPK");
+  add<KPPK>("KPPK");
   add<KNK>("KNK");
   add<KBK>("KSK");
-  add<KQQK>("KMMK");
+  add<KQK>("KMK");
+  add<KPK>("KPK");
+  add<KNKB>("KNKS");
+  add<KNKQ>("KNKM");
+  add<KBKQ>("KSKM");
+  add<KNKP>("KNKP");
+  add<KBKP>("KSKP");
+  add<KQKP>("KMKP");
   add<KBQK>("KSMK");
   add<KNQK>("KNMK");
 }
@@ -413,8 +423,28 @@ Value Endgame<KNQK>::operator()(const Position& pos) const {
 /// Some cases of trivial draws
 template<> Value Endgame<KNNK>::operator()(const Position&) const { return VALUE_DRAW; }
 
+template<> Value Endgame<KQQK>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KQPK>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KPPK>::operator()(const Position&) const { return VALUE_DRAW; }
+
 template<> Value Endgame<KNK>::operator()(const Position&) const { return VALUE_DRAW; }
 
 template<> Value Endgame<KBK>::operator()(const Position&) const { return VALUE_DRAW; }
 
-template<> Value Endgame<KQQK>::operator()(const Position&) const { return VALUE_DRAW; }
+template<> Value Endgame<KQK>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KPK>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KNKB>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KNKQ>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KBKQ>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KNKP>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KBKP>::operator()(const Position&) const { return VALUE_DRAW; }
+
+template<> Value Endgame<KQKP>::operator()(const Position&) const { return VALUE_DRAW; }
