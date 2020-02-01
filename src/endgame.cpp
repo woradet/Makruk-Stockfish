@@ -141,7 +141,6 @@ template<>
 Value Endgame<KXK>::operator()(const Position& pos) const {
 
   assert(verify_material(pos, weakSide, VALUE_ZERO, 0));
-  assert(!pos.checkers()); // Eval is never called when in check
 
   // Stalemate detection with lone king
   if (pos.side_to_move() == weakSide && !MoveList<LEGAL>(pos).size())
@@ -201,22 +200,16 @@ Value Endgame<KXK>::operator()(const Position& pos) const {
 template<>
 Value Endgame<KQsPsK>::operator()(const Position& pos) const {
 
-  assert(!pos.checkers()); // Eval is never called when in check
-
-  Square winnerKSq = pos.square<KING>(strongSide);
   Square loserKSq = pos.square<KING>(weakSide);
-  Square queenSq = pos.square<QUEEN>(strongSide);
 
   Value result =  pos.non_pawn_material(strongSide)
                 + pos.count<PAWN>(strongSide) * PawnValueEg
-                + PushToEdges[loserKSq]
-				+ PushToQueenCorners[opposite_colors(queenSq, SQ_A1)? ~loserKSq : loserKSq]
-                + PushClose[distance(winnerKSq, loserKSq)];
+                - pos.count<PAWN>(weakSide) * PawnValueEg;
 
-  if (   pos.count<QUEEN>(strongSide)>=3
+  if ( pos.count<QUEEN>(strongSide) >= 3
       && ( DarkSquares & pos.pieces(strongSide, QUEEN))
       && (~DarkSquares & pos.pieces(strongSide, QUEEN)))
-      result = std::min(result + VALUE_KNOWN_WIN, VALUE_MATE_IN_MAX_PLY - 1);
+      result += PushToEdges[loserKSq];
   else if (pos.count<QUEEN>(strongSide) + pos.count<PAWN>(strongSide) < 3)
       return VALUE_DRAW;
   else

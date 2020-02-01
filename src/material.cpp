@@ -71,11 +71,15 @@ namespace {
   }
 
   bool is_KQsPsK(const Position& pos, Color us) {
-    return   !more_than_one(pos.pieces(~us))
-          && (pos.count<QUEEN >(us) || pos.count<PAWN>(us))
+    return   (pos.count<QUEEN >(us) || pos.count<PAWN>(us))
           && !pos.count<ROOK  >(us)
           && !pos.count<BISHOP>(us)
-          && !pos.count<KNIGHT>(us);
+          && !pos.count<KNIGHT>(us)
+          && (pos.count<PAWN>(~us) || !pos.count<PAWN>(~us))
+          && !pos.count<ROOK>(~us)
+          && !pos.count<BISHOP>(~us)
+          && !pos.count<KNIGHT>(~us)
+          && !pos.count<QUEEN>(~us);
   }
 
   bool is_KXKP(const Position& pos, Color us) {
