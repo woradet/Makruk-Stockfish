@@ -457,8 +457,6 @@ bool Position::pseudo_legal(const Move m) const {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
 
-  const Bitboard TRank6BB = (us == WHITE ? Rank6BB : Rank3BB);
-
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)
       return MoveList<LEGAL>(*this).contains(m);
@@ -481,12 +479,15 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 6th/3rd rank.
-      if (type_of(pc) == PAWN && (TRank6BB & to))
+      if ((Rank6BB | Rank3BB) & to)
           return false;
 
       if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
-          && !((from + pawn_push(us) == to) && empty(to)))      // Not a single push
-
+          && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
+          && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
+               && (rank_of(from) == relative_rank(us, RANK_2))
+               && empty(to)
+               && empty(to - pawn_push(us))))
           return false;
   }
   else if (type_of(pc) == BISHOP ? !(attacks_from<BISHOP>(from, color_of(pc)) & to)

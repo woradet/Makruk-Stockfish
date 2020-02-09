@@ -111,15 +111,6 @@ namespace {
       S( 46,166), S( 48,169), S( 58,171) }
   };
 
-  // Outpost[knight/bishop][supported by pawn] contains bonuses for minor
-  // pieces if they occupy or can reach an outpost square, bigger if that
-  // square is supported by a pawn.
-  constexpr Score Outpost[][2] = {
-    { S( 9, 2), S(15, 5) }, // Queen
-    { S(14, 7), S(20,10) }, // Bishop
-    { S(22, 6), S(36,12) }  // Knight
-  };
-
   // RookOnFile[semiopen/open] contains bonuses for each rook when there is
   // no (friendly) pawn on the rook file.
   constexpr Score RookOnFile[] = { S(20, 7), S(45, 20) };
@@ -161,9 +152,11 @@ namespace {
   constexpr Score Connectivity       = S(  3,  1);
   constexpr Score Hanging            = S( 52, 30);
   constexpr Score HinderPassedPawn   = S(  5, -1);
-  constexpr Score MinorBehindPawn    = S( 16,  0);
+  constexpr Score MinorBehindPawn    = S( 18,  3);
+  constexpr Score Outpost            = S( 30, 21);
   constexpr Score Overload           = S( 10,  5);
   constexpr Score PawnlessFlank      = S( 20, 80);
+  constexpr Score ReachableOutpost   = S( 32, 10);
   constexpr Score RookOnPawn         = S(  8, 24);
   constexpr Score ThreatByPawnPush   = S( 49, 30);
   constexpr Score ThreatByRank       = S( 16,  3);
@@ -323,10 +316,10 @@ namespace {
             // Bonus if piece is on an outpost square or can reach one
             bb = OutpostRanks & ~pe->pawn_attacks_span(Them);
             if (bb & s)
-                score += Outpost[Pt == BISHOP][!!(attackedBy[Us][PAWN] & s)] * 2;
+                score += Outpost * (Pt == KNIGHT ? 2 : 1);
 
-            else if (bb &= b & ~pos.pieces(Us))
-                score += Outpost[Pt == BISHOP][!!(attackedBy[Us][PAWN] & bb)];
+            else if (Pt == KNIGHT && bb & b & ~pos.pieces(Us))
+                score += ReachableOutpost;
 
             // Bonus when behind a pawn
             if (    relative_rank(Us, s) < RANK_5
@@ -430,7 +423,7 @@ namespace {
                      + 183 * popcount(kingRing[Us] & weak)
                      + 122 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
                      -   7 * mg_value(score) / 8
-					 - 100 * !pos.count<ROOK>(Them)
+					 - 135 * !pos.count<ROOK>(Them)
                      - 999 ;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation
@@ -620,15 +613,15 @@ namespace {
 
                 // If there aren't any enemy attacks, assign a big bonus. Otherwise
                 // assign a smaller bonus if the block square isn't attacked.
-                int k = !unsafeSquares ? 4 : !(unsafeSquares & blockSq) ? 2 : 0;
+                int k = !unsafeSquares ? 12 : !(unsafeSquares & blockSq) ? 6 : 0;
 
                 // If the path to the queen is fully defended, assign a big bonus.
                 // Otherwise assign a smaller bonus if the block square is defended.
                 if (defendedSquares == squaresToQueen)
-                    k += 2;
+                    k += 6;
 
                 else if (defendedSquares & blockSq)
-                    k += 1;
+                    k += 3;
 
                 bonus += make_score(k * w, k * w);
             }
