@@ -148,6 +148,7 @@ namespace {
   constexpr Score KingProtector[] = { S(4, 6), S(6, 3) };
 
   // Assorted bonuses and penalties
+  constexpr Score BishopPawns        = S(  3,  7);
   constexpr Score CloseEnemies       = S(  8,  0);
   constexpr Score Connectivity       = S(  3,  1);
   constexpr Score Hanging            = S( 52, 30);
@@ -276,6 +277,7 @@ namespace {
   Score Evaluation<T>::pieces() {
 
     constexpr Color     Them = (Us == WHITE ? BLACK : WHITE);
+    constexpr Direction Down = (Us == WHITE ? SOUTH : NORTH);
     constexpr Bitboard OutpostRanks = (Us == WHITE ? Rank4BB | Rank5BB | Rank6BB
                                                    : Rank5BB | Rank4BB | Rank3BB);
     const Square* pl = pos.squares<Pt>(Us);
@@ -328,6 +330,16 @@ namespace {
 
             // Penalty if the piece is far from the king
             score -= KingProtector[Pt == BISHOP] * distance(s, pos.square<KING>(Us));
+
+            if (Pt == BISHOP || Pt == QUEEN)
+            {
+                // Penalty according to number of pawns on the same color square as the
+                // bishop, bigger when the center files are blocked with pawns.
+                Bitboard blocked = pos.pieces(Us, PAWN) & shift<Down>(pos.pieces());
+
+                score -= BishopPawns * pe->pawns_on_same_color_squares(Us, s)
+                                     * (1 + popcount(blocked & CenterFiles));
+            }
         }
 
         if (Pt == ROOK)
@@ -423,7 +435,7 @@ namespace {
                      + 183 * popcount(kingRing[Us] & weak)
                      + 122 * popcount(pos.blockers_for_king(Us) | unsafeChecks)
                      -   7 * mg_value(score) / 8
-					 - 135 * !pos.count<ROOK>(Them)
+                     - 135 * !pos.count<ROOK>(Them)
                      - 999 ;
 
         // Transform the kingDanger units into a Score, and subtract it from the evaluation

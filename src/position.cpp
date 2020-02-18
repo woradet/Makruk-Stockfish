@@ -479,7 +479,7 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 6th/3rd rank.
-      if ((Rank6BB | Rank3BB) & to)
+      if (rank_of(to) >= relative_rank(us, RANK_6))
           return false;
 
       if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
