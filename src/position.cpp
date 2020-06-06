@@ -457,6 +457,8 @@ bool Position::pseudo_legal(const Move m) const {
   Square to = to_sq(m);
   Piece pc = moved_piece(m);
 
+  const Bitboard TRank6BB = (us == WHITE ? Rank6BB : Rank3BB);
+
   // Use a slower but simpler function for uncommon cases
   if (type_of(m) != NORMAL)
       return MoveList<LEGAL>(*this).contains(m);
@@ -479,15 +481,12 @@ bool Position::pseudo_legal(const Move m) const {
   {
       // We have already handled promotion moves, so destination
       // cannot be on the 6th/3rd rank.
-      if (rank_of(to) >= relative_rank(us, RANK_6))
+      if (type_of(pc) == PAWN && (TRank6BB & to))
           return false;
 
       if (   !(attacks_from<PAWN>(from, us) & pieces(~us) & to) // Not a capture
-          && !((from + pawn_push(us) == to) && empty(to))       // Not a single push
-          && !(   (from + 2 * pawn_push(us) == to)              // Not a double push
-               && (rank_of(from) == relative_rank(us, RANK_2))
-               && empty(to)
-               && empty(to - pawn_push(us))))
+          && !((from + pawn_push(us) == to) && empty(to)))      // Not a single push
+
           return false;
   }
   else if (type_of(pc) == BISHOP ? !(attacks_from<BISHOP>(from, color_of(pc)) & to)
@@ -608,9 +607,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       st->materialKey ^= Zobrist::psq[captured][pieceCount[captured]];
       prefetch(thisThread->materialTable[st->materialKey]);
 
-      // Reset rule 50 counter unless we are in a pawnless endgame
-      if (count<PAWN>() || (type_of(captured) == PAWN && count<ALL_PIECES>(color_of(captured)) > 1))
-          st->rule50 = 0;
+      // Reset rule 50 counter
+      st->rule50 = 0;
   }
 
   // Update hash key
@@ -1011,7 +1009,8 @@ bool Position::pos_is_ok() const {
       || attackers_to(square<KING>(~sideToMove)) & pieces(sideToMove))
       assert(0 && "pos_is_ok: Kings");
 
-  if (   (pieces(PAWN) & (Rank1BB | Rank8BB))
+  if (  ((pieces(WHITE , PAWN) & (Rank1BB | Rank2BB | Rank6BB | Rank7BB | Rank8BB))
+      && (pieces(BLACK , PAWN) & (Rank8BB | Rank7BB | Rank3BB | Rank2BB | Rank1BB)))
       || pieceCount[W_PAWN] > 8
       || pieceCount[B_PAWN] > 8)
       assert(0 && "pos_is_ok: Pawns");
