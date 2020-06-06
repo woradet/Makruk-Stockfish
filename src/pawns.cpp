@@ -32,9 +32,9 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Pawn penalties
-  constexpr Score Isolated = S( 4, 20);
-  constexpr Score Backward = S(21, 22);
-  constexpr Score Doubled  = S(12, 54);
+  constexpr Score Isolated = S( 5, 15);
+  constexpr Score Backward = S(9, 24);
+  constexpr Score Doubled  = S(11, 56);
 
   // Connected pawn bonus by opposed, phalanx, #support and rank
   Score Connected[2][2][3][RANK_NB];
@@ -60,7 +60,7 @@ namespace {
  
   // Danger of blocked enemy pawns storming our king, by rank
   constexpr Value BlockedStorm[RANK_NB] =
-    { V(0), V(0), V( 81), V(-9), V(-5), V(-1), V(26) };
+    { V(0), V(0), V( 66), V(6), V(5), V(1), V(15) };
 
   #undef S
   #undef V
