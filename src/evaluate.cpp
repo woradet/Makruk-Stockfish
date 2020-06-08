@@ -320,10 +320,8 @@ namespace {
             else if (Pt == KNIGHT && bb & b & ~pos.pieces(Us))
                 score += ReachableOutpost;
 
-            // Bonus when behind a pawn
-            if (    relative_rank(Us, s) < RANK_5
-                && (pos.pieces(PAWN) & (s + pawn_push(Us))))
-                score += MinorBehindPawn;
+            // Knight and Bishop bonus for being right behind a pawn
+            if (shift<Down>(pos.pieces(PAWN)) & s)
 
             // Penalty if the piece is far from the king
             score -= KingProtector[Pt == BISHOP] * distance(s, pos.square<KING>(Us));
